@@ -1,0 +1,101 @@
+version: "3"
+services:
+  bidify_db:
+    container_name: bidify_db
+    image: mysql:8
+    # For M1 Chip - Mac
+    platform: linux/x86_64 
+    restart: unless-stopped
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD
+      MYSQL_PASSWORD: $MYSQL_PASSWORD
+      MYSQL_DATABASE: $MYSQL_DATABASE
+    volumes:
+      - db_data:/data/db
+    ports:
+      - 3306:3306
+    networks:
+      - bidify_network
+
+  bidify_api:
+    build:
+      context: ./bidify_api
+      dockerfile: docker/Dockerfile.dev
+    container_name: bidify_api
+    image: bidify_api
+    restart: always
+    environment:
+      - PORT=$PORT
+      - DB_HOST=$DB_HOST
+      - DB_PORT=$DB_PORT
+      - DB_USER=$MYSQL_USER
+      - DB_PASSWORD=$MYSQL_PASSWORD
+      - DB_DATABASE=$MYSQL_DATABASE
+      - SECRET_KEY=$SECRET_KEY
+    volumes:
+      - ./bidify_api:/bidify_api/app
+      - ./bidify_api/package.json:/bidify_api/package.json
+      - ./bidify_api/package-lock.json:/bidify_api/package-lock.json
+      - api_nm:/bidify_api/app/node_modules
+    ports:
+      - 4000:4000
+      - 9229:9229
+    networks:
+      - bidify_network
+    depends_on:
+      - bidify_db
+    command: npm run dev
+    stdin_open: true
+    tty: true
+
+  bidify_client:
+    build:
+      context: ./bidify_client
+      dockerfile: docker/Dockerfile.dev
+    container_name: bidify_client
+    image: bidify_client
+    restart: unless-stopped
+    environment:
+      - HOST=0.0.0.0
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_URL=$REACT_APP_API_URL
+    volumes:
+      - ./bidify_client:/bidify_client/app
+      - client_nm:/bidify_client/app/node_modules
+    ports:
+      - 3000:3000
+    networks:
+      - bidify_network
+    depends_on:
+      - bidify_db
+    command: yarn start
+    stdin_open: true
+    tty: true
+
+  bidify_server:
+    depends_on:
+      - bidify_api
+      - bidify_client
+      - bidify_db
+    container_name: bidify_server
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - "80:80"
+    networks:
+      - bidify_network
+
+volumes:
+  db_data:
+    driver: local
+  api_nm:
+    driver: local
+  client_nm:
+    driver: local
+
+networks:
+  bidify_network:
+    driver: bridge

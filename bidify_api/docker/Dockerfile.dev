@@ -1,0 +1,12 @@
+FROM node:lts-alpine
+
+WORKDIR /bidify_api/app
+
+COPY package*.json ./
+
+RUN npm install -g ts-node
+RUN npm install -g cross-env 
+RUN npm install -g nodemon
+RUN npm install
+
+EXPOSE 4000

@@ -1,0 +1,14 @@
+const path = require('path')
+
+const env = process.env.NODE_ENV || 'development'
+const configPath = env === 'production' ? 'dist/db/config' : 'src/db/config'
+const modelsPath = env === 'production' ? 'dist/db/models' : 'src/db/models'
+const migrationsPath = env === 'production' ? 'dist/db/migrations' : 'src/db/migrations'
+const seedersPath = env === 'production' ? 'dist/db/seeders' : 'src/db/seeders'
+
+module.exports = {
+  config: path.resolve(configPath, 'db-config.js'),
+  'models-path': path.resolve(modelsPath),
+  'seeders-path': path.resolve(seedersPath),
+  'migrations-path': path.resolve(migrationsPath),
+}

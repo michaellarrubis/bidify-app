@@ -1,0 +1,31 @@
+# --------------> Build
+FROM node:lts-alpine as base
+
+RUN npm i npm@latest -g
+
+WORKDIR /base
+
+COPY . .
+
+RUN npm i && npm run build
+
+# --------------> Final
+FROM node:lts-alpine
+
+ENV NODE_ENV production
+
+WORKDIR /app
+
+COPY --from=base /base/package*.json ./
+
+COPY --from=base /base/dist ./dist
+
+COPY .sequelizerc ./
+
+# COPY purify-db.sh ./
+
+RUN npm ci --production
+
+EXPOSE 8080
+
+CMD ["node", "dist/server.js"]
